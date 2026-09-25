@@ -9,7 +9,7 @@ research, JC prisms, enchanting spheres, Glacial Bag, **Salt Shaker**, etc.).
 | Layer | Role |
 |-------|------|
 | Module SQL | Sets `spell_cooldown_overrides` RecoveryTime / CategoryRecoveryTime to **0** for allowlisted craft spells; zeros Salt Shaker `item_template` CDs |
-| `ProfessionCraftCd.Enabled` | Documents intent; logs at worldserver load |
+| `ProfessionCraftCd.Enabled` | Pushes the zero CD to the 3.3.5 client after each craft (see below) |
 | Core `SkillGain.Crafting = 3` | Companion skill-up rate — set in `worldserver.conf` (not this module) |
 
 **Does not** change:
@@ -18,12 +18,40 @@ research, JC prisms, enchanting spheres, Glacial Bag, **Salt Shaker**, etc.).
 - Hearthstone, potions, combat spells
 - Gathering professions
 
-After a successful craft the 3.3.5 client still starts the **Spell.dbc** timer
-unless the server pushes `SMSG_SPELL_COOLDOWN` from `spell_cooldown_overrides`
-(same pattern as hearthstone). Core + this module send a 1 ms packet plus
-`SMSG_CLEAR_COOLDOWN` for category 310 siblings so the client adopts the
-database CD. Optional:
-`scripts/patch-profession-craft-dbc.sh` + clear `Cache/` so tooltips match.
+## Client cooldown
+
+Zeroing `spell_cooldown_overrides` only changes the server. The 3.3.5 client
+reads its own **Spell.dbc**, starts the 20 h (category 310) timer when the craft
+lands (`SMSG_SPELL_GO`) and greys out the recipe, including every other
+category-310 transmute.
+
+With `ProfessionCraftCd.Enabled = 1`, after each craft whose override is 0/0 the
+module sends:
+
+1. `SMSG_SPELL_COOLDOWN` for the crafted spell with a **1 ms** cooldown (0 would
+   mean "use Spell.dbc"), replacing the client timer
+2. `SMSG_CLEAR_COOLDOWN` for each known spell in the same category, skipping any
+   that still has a real server-side cooldown
+
+It sends both right after `SMSG_SPELL_GO` and again 150 ms later. No core patch is
+needed: this uses `SpellMgr::HasSpellCooldownOverride` and stock `Player` packet
+helpers.
+
+### Optional: patched Spell.dbc (tooltips)
+
+Tooltips still say "20 hr cooldown" because they come from the client's
+Spell.dbc. To fix them, zero the same spells in a client DBC:
+
+```bash
+scripts/patch-profession-craft-dbc.sh /path/to/azerothcore/data/dbc/Spell.dbc
+```
+
+The script reads the spell IDs from this module's SQL and writes
+`DBFilesClient/Spell.dbc`. Pack it into a client patch MPQ (e.g.
+`Data/patch-P.MPQ`) as `DBFilesClient\Spell.dbc`, then delete the client's
+`Cache/` folder so item tooltips (Salt Shaker) refresh. If another client patch
+already ships a Spell.dbc, patch that file, because only the newest MPQ's
+Spell.dbc is used.
 
 ## Allowlist (summary)
 
@@ -43,7 +71,7 @@ See `conf/professionCraftCd.conf.dist`:
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `ProfessionCraftCd.Enabled` | 1 | Log module presence |
+| `ProfessionCraftCd.Enabled` | 1 | Push zero craft CDs to the client after each craft |
 
 ## Install
 

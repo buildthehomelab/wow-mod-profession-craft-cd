@@ -11,6 +11,9 @@
 [worldserver]
 
 # ProfessionCraftCd.Enabled
-#        Description: Log module presence at startup. Cooldown removal is SQL-baked.
+#        Description: After a craft whose spell_cooldown_overrides row is 0/0, push
+#                     the zero cooldown to the 3.3.5 client (it otherwise starts the
+#                     Spell.dbc timer). The server-side CD removal is SQL-only and
+#                     applies either way.
 #        Default:     1 (enabled)
 ProfessionCraftCd.Enabled = 1
