@@ -77,8 +77,12 @@ See `conf/professionCraftCd.conf.dist`:
 
 ```bash
 cd modules
-git submodule add https://github.com/VenomekPL/mod-profession-craft-cd.git mod-profession-craft-cd
+git clone https://github.com/buildthehomelab/wow-mod-profession-craft-cd.git mod-profession-craft-cd
 ```
+
+Clone into `mod-profession-craft-cd` (no `wow-` prefix): AzerothCore derives the
+loader symbol from the folder name. Fork of
+[VenomekPL/mod-profession-craft-cd](https://github.com/VenomekPL/mod-profession-craft-cd).
 
 Companion core setting:
 
